@@ -1,105 +1,70 @@
-import { Box } from '@mui/material';
-import { motion } from 'framer-motion';
-import { MemoryFragment } from './MemoryFragment';
-import { useAppSelector } from '../store/store';
-import { RootState } from '../types/store';
+import React from 'react';
+import { Typography, Box, IconButton, useMediaQuery, useTheme } from '@mui/material';
+import { AnimatePresence } from 'framer-motion';
+import TimelineIcon from '@mui/icons-material/Timeline';
+import { MotionPaper, memoryFragmentMotion } from '@/utils/motion';
 
-const containerVariants = {
-  hidden: {
-    opacity: 0,
-  },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
-};
-
-const memoryFragmentContent: Record<string, { content: string; type: 'vinyl' | 'digital' | 'memory' | 'grief' | 'love' }> = {
-  failed_uploads: {
-    content: "Echoes of interrupted consciousness",
-    type: 'digital',
-  },
-  workshop_atmosphere: {
-    content: "Cathedral of lost souls",
-    type: 'memory',
-  },
-  beatrice_memory: {
-    content: "Rain-soaked turntable",
-    type: 'love',
-  },
-  anna_perez_mathematics: {
-    content: "Pure mathematics of consciousness",
-    type: 'digital',
-  },
-  emily_chen_transformation: {
-    content: "Mozart becoming something else",
-    type: 'grief',
-  },
-  failed_upload_chorus: {
-    content: "A chorus of the almost-saved",
-    type: 'digital',
-  },
-  beatrice_first_meeting: {
-    content: "Water dripping from dark curls",
-    type: 'love',
-  },
-  turntable_repair: {
-    content: "Sometimes scratches make it real",
-    type: 'vinyl',
-  },
-  rain_memory: {
-    content: "The sound of possibility",
-    type: 'memory',
-  },
-};
-
-export const MemoryFragmentContainer = () => {
-  const activeMemoryFragments = useAppSelector((state: RootState) => state.narrative.activeMemoryFragments);
+export const MemoryFragmentContainer: React.FC = () => {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   return (
     <Box
-      component={motion.div}
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
       sx={{
         position: 'fixed',
-        top: 20,
+        top: isMobile ? 'auto' : 20,
+        bottom: { xs: 20, md: 'auto' },
         right: 20,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'flex-end',
-        gap: 2,
-        maxHeight: 'calc(100vh - 40px)',
-        overflowY: 'auto',
-        p: 2,
-        '&::-webkit-scrollbar': {
-          width: '8px',
-        },
-        '&::-webkit-scrollbar-track': {
-          background: 'rgba(0,0,0,0.1)',
-        },
-        '&::-webkit-scrollbar-thumb': {
-          background: 'rgba(255,255,255,0.2)',
-          borderRadius: '4px',
-        },
+        zIndex: 1000,
       }}
     >
-      {activeMemoryFragments.map((fragmentId) => {
-        const fragmentData = memoryFragmentContent[fragmentId];
-        if (!fragmentData) return null;
+      <IconButton
+        onClick={() => setIsOpen(!isOpen)}
+        sx={{
+          backgroundColor: 'background.paper',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          '&:hover': {
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          },
+        }}
+      >
+        <TimelineIcon />
+      </IconButton>
 
-        return (
-          <MemoryFragment
-            key={fragmentId}
-            content={fragmentData.content}
-            type={fragmentData.type}
-            isActive={true}
-          />
-        );
-      })}
+      <AnimatePresence>
+        {isOpen && (
+          <MotionPaper
+            {...memoryFragmentMotion.container}
+            elevation={0}
+            sx={{
+              position: 'absolute',
+              top: { xs: 'auto', md: 0 },
+              bottom: { xs: '100%', md: 'auto' },
+              right: 0,
+              mb: { xs: 2, md: 0 },
+              width: { xs: '90vw', sm: 400 },
+              maxHeight: '80vh',
+              overflow: 'auto',
+              backgroundColor: 'background.paper',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              p: 3,
+            }}
+          >
+            <Typography variant="h6" gutterBottom sx={{ color: 'primary.light' }}>
+              Memory Timeline
+            </Typography>
+            <Box sx={{ mt: 2 }}>
+              {/* Memory fragments would be mapped here */}
+              <Typography variant="body2" color="text.secondary">
+                Your journey&apos;s memories will appear here...
+              </Typography>
+            </Box>
+          </MotionPaper>
+        )}
+      </AnimatePresence>
     </Box>
   );
 }; 

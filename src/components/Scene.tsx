@@ -1,92 +1,119 @@
-import { Box, Paper, Typography } from '@mui/material';
-import { Scene as SceneType } from '../types/store';
-import { createMotionComponent } from '../utils/motion';
-
-const MotionPaper = createMotionComponent(Paper);
-const MotionTypography = createMotionComponent(Typography);
+import React, { Suspense } from 'react';
+import { Typography, Box, Container, CircularProgress } from '@mui/material';
+import { Scene as SceneType } from '@/types/store';
+import { motion } from 'framer-motion';
+import { Logger } from '@/utils/logger';
+import { MotionPaper, MotionButton, slideUp, interactiveMotion, fadeIn, transitions } from '@/utils/motion';
 
 interface SceneProps {
   scene: SceneType;
   onChoiceSelect: (choiceId: string) => void;
 }
 
-const sceneVariants = {
-  exit: {
-    opacity: 0,
-    y: 50,
-  },
-  enter: {
-    opacity: 1,
-    y: 0,
-  },
-};
+const LoadingFallback = () => (
+  <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+    <CircularProgress />
+  </Box>
+);
 
-const textVariants = {
-  hidden: {
-    opacity: 0,
-    y: 20,
-  },
-  visible: {
-    opacity: 1,
-    y: 0,
-  },
-};
+const SceneContent: React.FC<SceneProps> = React.memo(({ scene, onChoiceSelect }) => {
+  const handleChoiceClick = React.useCallback((choiceId: string) => {
+    Logger.info(`Selected choice: ${choiceId} in scene: ${scene.id}`);
+    onChoiceSelect(choiceId);
+  }, [onChoiceSelect, scene.id]);
 
-export const Scene = ({ scene, onChoiceSelect }: SceneProps) => {
   return (
-    <Box sx={{ maxWidth: 800, mx: 'auto', p: 4 }}>
-      <MotionPaper
-        variants={sceneVariants}
-        initial="exit"
-        animate="enter"
-        exit="exit"
-        elevation={3}
-        sx={{ p: 4, bgcolor: 'background.paper' }}
+    <MotionPaper
+      {...slideUp}
+      transition={transitions.default}
+      elevation={0}
+      sx={{
+        p: { xs: 3, md: 6 },
+        background: 'rgba(16, 23, 42, 0.7)',
+        backdropFilter: 'blur(10px)',
+        borderRadius: 4,
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+      }}
+    >
+      <Typography
+        variant="h2"
+        component="h1"
+        gutterBottom
+        sx={{
+          fontSize: { xs: '1.75rem', md: '2.5rem' },
+          mb: 4,
+          textAlign: 'center',
+          color: 'primary.light',
+        }}
       >
-        <MotionTypography
-          variant="h4"
-          gutterBottom
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-        >
-          {scene.title}
-        </MotionTypography>
+        {scene.title}
+      </Typography>
 
-        <MotionTypography
-          variant="body1"
-          sx={{ mb: 4 }}
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.4 }}
-        >
-          {scene.content}
-        </MotionTypography>
+      <Typography
+        variant="body1"
+        paragraph
+        sx={{
+          whiteSpace: 'pre-line',
+          textAlign: 'justify',
+          mb: 6,
+          color: 'text.primary',
+          lineHeight: 1.8,
+        }}
+      >
+        {scene.content}
+      </Typography>
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {scene.choices.map((choice) => (
-            <MotionPaper
-              key={choice.id}
-              variants={textVariants}
-              initial="hidden"
-              animate="visible"
-              whileHover={{ scale: 1.02 }}
-              elevation={2}
-              onClick={() => onChoiceSelect(choice.id)}
-              sx={{
-                p: 2,
-                cursor: 'pointer',
-                transition: 'background-color 0.2s',
-                '&:hover': {
-                  bgcolor: 'action.hover',
-                },
-              }}
-            >
-              <Typography variant="body1">{choice.text}</Typography>
-            </MotionPaper>
-          ))}
-        </Box>
-      </MotionPaper>
-    </Box>
+      <Box
+        component={motion.div}
+        {...fadeIn}
+        transition={{ delay: 0.3 }}
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2,
+          mt: 4,
+        }}
+      >
+        {scene.choices.map((choice, index) => (
+          <MotionButton
+            key={choice.id}
+            variant="outlined"
+            color="primary"
+            onClick={() => handleChoiceClick(choice.id)}
+            {...slideUp}
+            {...interactiveMotion}
+            transition={{ 
+              ...transitions.quick,
+              delay: index * 0.1,
+              ...interactiveMotion.transition 
+            }}
+            sx={{
+              py: 2,
+              px: 4,
+              borderWidth: 1,
+              borderColor: 'rgba(255, 255, 255, 0.2)',
+              '&:hover': {
+                borderColor: 'primary.light',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              },
+            }}
+          >
+            <Typography variant="body1">{choice.text}</Typography>
+          </MotionButton>
+        ))}
+      </Box>
+    </MotionPaper>
   );
-}; 
+});
+
+SceneContent.displayName = 'SceneContent';
+
+export const Scene: React.FC<SceneProps> = (props) => {
+  return (
+    <Container maxWidth="md" sx={{ py: 4 }}>
+      <Suspense fallback={<LoadingFallback />}>
+        <SceneContent {...props} />
+      </Suspense>
+    </Container>
+  );
+};

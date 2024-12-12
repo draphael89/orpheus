@@ -1,8 +1,6 @@
-import { Paper, Typography, Box } from '@mui/material';
+import { Typography, Box } from '@mui/material';
 import { ThematicElement } from '../types/store';
-import { createMotionComponent } from '../utils/motion';
-
-const MotionPaper = createMotionComponent(Paper);
+import { MotionPaper } from '../utils/motion';
 
 interface MemoryFragmentProps {
   content: string;

@@ -1,15 +1,16 @@
 import { HTMLMotionProps } from 'framer-motion';
 import { Theme } from '@mui/material/styles';
 import { SxProps } from '@mui/system';
-import { PaperProps, TypographyProps } from '@mui/material';
+import { PaperProps, ButtonProps, BoxProps, ContainerProps } from '@mui/material';
 
 export type MotionComponentProps = HTMLMotionProps<"div"> & {
   sx?: SxProps<Theme>;
 };
 
-export type MotionPaperProps = PaperProps & HTMLMotionProps<"div">;
-
-export type MotionTypographyProps = TypographyProps & HTMLMotionProps<"div">;
+export type MotionPaperProps = HTMLMotionProps<"div"> & PaperProps;
+export type MotionButtonProps = HTMLMotionProps<"button"> & ButtonProps;
+export type MotionBoxProps = HTMLMotionProps<"div"> & BoxProps;
+export type MotionContainerProps = HTMLMotionProps<"div"> & ContainerProps;
 
 export interface AnimationVariants {
   [key: string]: {
@@ -23,6 +24,8 @@ export interface AnimationVariants {
       duration?: number;
       delay?: number;
       ease?: string;
+      staggerChildren?: number;
+      delayChildren?: number;
     };
   };
 } 

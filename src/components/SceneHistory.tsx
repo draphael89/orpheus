@@ -1,117 +1,162 @@
-import { Box, Typography, Paper } from '@mui/material';
-import { useAppSelector, useAppDispatch } from '../store/store';
-import { navigateHistory } from '../store/slices/historySlice';
-import { RootState } from '../types/store';
-import { createMotionComponent } from '../utils/motion';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import TimelineIcon from '@mui/icons-material/Timeline';
+import React, { Suspense } from 'react';
+import { Typography, Box, IconButton, Drawer, CircularProgress } from '@mui/material';
+import { AnimatePresence } from 'framer-motion';
+import HistoryIcon from '@mui/icons-material/History';
+import { useAppSelector } from '@/store/store';
+import { Scene } from '@/types/store';
+import { Logger } from '@/utils/logger';
+import { MotionPaper, MotionBox, slideInLeft, fadeIn, transitions, createStaggerChildren } from '@/utils/motion';
 
-const MotionPaper = createMotionComponent(Paper);
+// Create stagger animation config
+const staggerConfig = createStaggerChildren(0.1);
+const { container } = staggerConfig;
 
-const historyItemVariants = {
-  hidden: {
-    opacity: 0,
-    x: -20,
-  },
-  visible: {
-    opacity: 1,
-    x: 0,
-    transition: {
-      duration: 0.3,
-    },
-  },
-  hover: {
-    scale: 1.02,
-    x: 5,
-    transition: {
-      duration: 0.2,
-    },
-  },
-};
+interface HistoryEntry {
+  scene: Scene;
+  choiceMade: { id: string; text: string; } | null;
+  timestamp: number;
+}
 
-const containerVariants = {
-  hidden: {
-    opacity: 0,
-    x: -50,
-  },
-  visible: {
-    opacity: 1,
-    x: 0,
-    transition: {
-      duration: 0.5,
-    },
-  },
-};
+interface HistoryItemProps {
+  entry: HistoryEntry;
+  index: number;
+}
 
-export const SceneHistory = () => {
-  const dispatch = useAppDispatch();
-  const history = useAppSelector((state: RootState) => state.history.entries);
-  const currentIndex = useAppSelector((state: RootState) => state.history.currentIndex);
+const LoadingFallback = () => (
+  <Box display="flex" justifyContent="center" alignItems="center" p={4}>
+    <CircularProgress size={24} />
+  </Box>
+);
 
-  const handleHistoryClick = (index: number) => {
-    dispatch(navigateHistory(index));
-  };
+const HistoryItem: React.FC<HistoryItemProps> = React.memo(({ entry, index }) => {
+  React.useEffect(() => {
+    Logger.debug(`Rendering history item: ${entry.scene.id}`);
+  }, [entry.scene.id]);
 
   return (
-    <Box
+    <MotionPaper
+      {...slideInLeft}
+      transition={{ ...transitions.quick, delay: index * 0.1 }}
       sx={{
-        position: 'fixed',
-        left: 20,
-        top: 20,
-        maxWidth: 300,
-        maxHeight: 'calc(100vh - 40px)',
-        overflowY: 'auto',
-        zIndex: 10,
+        p: 2,
+        mb: 2,
+        backgroundColor: 'background.paper',
+        backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        cursor: 'pointer',
+        '&:hover': {
+          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+          transform: 'translateX(4px)',
+        },
       }}
     >
-      <MotionPaper
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        elevation={3}
+      <Typography variant="subtitle1" sx={{ color: 'primary.light', mb: 1 }}>
+        {entry.scene.title}
+      </Typography>
+      <Typography
+        variant="body2"
+        color="text.secondary"
         sx={{
-          p: 2,
-          bgcolor: 'background.paper',
-          borderRadius: 2,
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+          lineHeight: 1.6,
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <TimelineIcon sx={{ mr: 1 }} />
-          <Typography variant="h6">Memory Timeline</Typography>
-        </Box>
+        {entry.scene.content}
+      </Typography>
+    </MotionPaper>
+  );
+});
 
-        {history.map((entry, index) => (
-          <MotionPaper
-            key={entry.timestamp}
-            variants={historyItemVariants}
-            initial="hidden"
-            animate="visible"
-            whileHover="hover"
-            elevation={2}
-            sx={{
-              p: 2,
-              mb: 1,
-              cursor: 'pointer',
-              bgcolor: index === currentIndex ? 'action.selected' : 'background.paper',
-              borderLeft: index === currentIndex ? '4px solid' : 'none',
-              borderColor: 'primary.main',
-            }}
-            onClick={() => handleHistoryClick(index)}
-          >
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>
-              {entry.scene.title}
-            </Typography>
-            {entry.choiceMade && (
-              <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                <ArrowBackIcon sx={{ fontSize: 16, mr: 1, transform: 'rotate(225deg)' }} />
-                <Typography variant="caption" color="text.secondary">
-                  {entry.choiceMade.text}
-                </Typography>
-              </Box>
-            )}
-          </MotionPaper>
-        ))}
-      </MotionPaper>
+HistoryItem.displayName = 'HistoryItem';
+
+const HistoryContent: React.FC<{ history: HistoryEntry[] }> = React.memo(({ history }) => {
+  return (
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h6" gutterBottom sx={{ color: 'primary.light' }}>
+        Journey History
+      </Typography>
+      <MotionBox
+        {...container}
+        {...fadeIn}
+        transition={transitions.default}
+        sx={{ mt: 3 }}
+      >
+        <AnimatePresence mode="popLayout">
+          {history.map((entry, index) => (
+            <HistoryItem key={entry.scene.id} entry={entry} index={index} />
+          ))}
+        </AnimatePresence>
+      </MotionBox>
     </Box>
   );
-}; 
+});
+
+HistoryContent.displayName = 'HistoryContent';
+
+export const SceneHistory: React.FC = () => {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const historyEntries = useAppSelector((state) => state.history.entries);
+
+  const handleToggle = React.useCallback(() => {
+    Logger.info(`Toggling history panel: ${isOpen ? 'close' : 'open'}`);
+    setIsOpen(prev => !prev);
+  }, [isOpen]);
+
+  const handleClose = React.useCallback(() => {
+    Logger.info('Closing history panel');
+    setIsOpen(false);
+  }, []);
+
+  return (
+    <>
+      <Box
+        sx={{
+          position: 'fixed',
+          top: { xs: 'auto', md: 20 },
+          bottom: { xs: 20, md: 'auto' },
+          left: 20,
+          zIndex: 1000,
+        }}
+      >
+        <IconButton
+          onClick={handleToggle}
+          aria-label="Toggle history"
+          sx={{
+            backgroundColor: 'background.paper',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            transition: 'all 0.2s ease-in-out',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              transform: 'scale(1.1)',
+            },
+          }}
+        >
+          <HistoryIcon />
+        </IconButton>
+      </Box>
+
+      <Drawer
+        anchor="left"
+        open={isOpen}
+        onClose={handleClose}
+        PaperProps={{
+          sx: {
+            width: { xs: '90vw', sm: 400 },
+            backgroundColor: 'background.paper',
+            backdropFilter: 'blur(10px)',
+            border: 'none',
+            boxShadow: 'none',
+          },
+        }}
+      >
+        <Suspense fallback={<LoadingFallback />}>
+          <HistoryContent history={historyEntries} />
+        </Suspense>
+      </Drawer>
+    </>
+  );
+};
